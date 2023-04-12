@@ -1,0 +1,19 @@
+CREATE DATABASE apige;
+
+USE apige;
+
+CREATE TABLE jogos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  data_jogo DATE,
+  hora_jogo TIME,
+  mandante_id INT,
+  mandante_sigla VARCHAR(10),
+  mandante_nome VARCHAR(100),
+  mandante_escudo VARCHAR(255),
+  visitante_id INT,
+  visitante_sigla VARCHAR(10),
+  visitante_nome VARCHAR(100),
+  visitante_escudo VARCHAR(255),
+  placar_mandante INT,
+  placar_visitante INT
+);
