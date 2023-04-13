@@ -13,5 +13,7 @@ CREATE TABLE jogos (
   visitante_sigla VARCHAR(10),
   visitante_nome VARCHAR(100),
   placar_mandante INT,
-  placar_visitante INT
+  placar_visitante INT,
+  UNIQUE KEY (mandante_id, visitante_id)
 );
+
