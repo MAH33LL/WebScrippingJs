@@ -9,11 +9,9 @@ CREATE TABLE jogos (
   mandante_id INT,
   mandante_sigla VARCHAR(10),
   mandante_nome VARCHAR(100),
-  mandante_escudo VARCHAR(255),
   visitante_id INT,
   visitante_sigla VARCHAR(10),
   visitante_nome VARCHAR(100),
-  visitante_escudo VARCHAR(255),
   placar_mandante INT,
   placar_visitante INT
 );

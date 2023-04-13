@@ -1,18 +1,9 @@
-<?php
-$apiUrl = 'http://localhost:3000/jogos/2023-04-15';
-$response = file_get_contents($apiUrl);
-$jogos = json_decode($response, true);
-
-if (empty($jogos)) {
-  echo "Não foram encontrados jogos na data " . date("d/m/Y");
-}
-?>
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../img/icon.webp" type="image/png">
     <link rel="stylesheet" type="text/css" href="../main.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <title>Jogos do Dia</title>
@@ -26,13 +17,9 @@ if (empty($jogos)) {
 </head>
 <body>
 <form>
-  <input type="text" id="busca-data" placeholder="YYYY-MM-DD">
+<input type="text" id="busca-input" placeholder="Buscar equipes">
+  <input type="number" id="busca-rodada" placeholder="Rodada" min="1" max="38" step="1" value="1">
   <button type="button" onclick="atualizarJogos()">Buscar Jogo</button>
-  <br><br>
-  <input type="text" id="busca-time" placeholder="Procurar time...">
-  <button type="button" onclick="filtrarJogos()">Procurar</button>
-  <br><br>
-  <button type="button" onclick="enviarJogos()">Salvar Jogos</button>
 </form>
 
 <p>
@@ -51,7 +38,6 @@ if (empty($jogos)) {
 
 <p><span style="color: white;">JOGOS DO DIA </span><span style="color: red;"></span></p>
 
-
     <table id="jogos-tabela">
         <thead>
             <tr>
@@ -67,68 +53,85 @@ if (empty($jogos)) {
     </table>
 
     <script>
-  // Adicione a função enviarJogos() aqui
-  function enviarJogos() {
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(jogos => {
-        fetch('salvar_jogos.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(jogos),
-        })
-          .then(response => response.text())
-          .then(result => alert(result))
-          .catch(error => console.error('Erro ao salvar jogos:', error));
-      })
-      .catch(error => console.error('Erro ao buscar jogos:', error));
-  }
-  
-  // Restante do seu código JavaScript
-</script>
+  const buscaInput = document.getElementById("busca-input");
+  const buscaRodadaInput = document.getElementById("busca-rodada");
 
-    <script>
-  let apiUrl = 'http://localhost:3000/jogos/2023-04-15';
-  const buscaDataInput = document.getElementById('busca-data');
+  function enviarJogos() {
+    filtrarJogos().then(jogosFiltrados => {
+      salvarJogos(jogosFiltrados);
+    });
+  }
+
+  let apiUrl = `https://api.globoesporte.globo.com/tabela/d1a37fa4-e948-43a6-ba53-ab24ab3a45b1/fase/fase-unica-campeonato-brasileiro-2023/rodada/1/jogos/`;
   const jogosTabela = document.getElementById('jogos-tabela').getElementsByTagName('tbody')[0];
   const nomeTimeInput = document.getElementById('busca-time');
 
   function atualizarJogos() {
-    apiUrl = `http://localhost:3000/jogos/${buscaDataInput.value}`;
+    const buscaRodadaInput = document.getElementById('busca-rodada');
+    apiUrl = `https://api.globoesporte.globo.com/tabela/d1a37fa4-e948-43a6-ba53-ab24ab3a45b1/fase/fase-unica-campeonato-brasileiro-2023/rodada/${buscaRodadaInput.value}/jogos/`;
     filtrarJogos();
   }
 
   function filtrarJogos() {
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(jogos => {
-        const nomeTime = nomeTimeInput.value.toLowerCase();
-        const jogosFiltrados = jogos.filter(jogo => jogo.mandante.nome.toLowerCase().includes(nomeTime) || jogo.visitante.nome.toLowerCase().includes(nomeTime));
-        jogosTabela.innerHTML = '';
-        jogosFiltrados.forEach(jogo => {
-          const newRow = jogosTabela.insertRow();
-          newRow.innerHTML = `
-            <td>${new Date(jogo.data).toLocaleDateString()}</td>
-            <td>${jogo.hora}</td>
-            <td>
-              <img src="${jogo.mandante.escudo}" alt="${jogo.mandante.sigla}" width="50">
-              ${jogo.mandante.nome}
-            </td>
-            <td>${jogo.placar_mandante !== null && jogo.placar_visitante !== null ? jogo.placar_mandante + ' x ' + jogo.placar_visitante : '-'}</td>
-            <td>
-              <img src="${jogo.visitante.escudo}" alt="${jogo.visitante.sigla}" width="50">
-              ${jogo.visitante.nome}
-            </td>`;
-        });
-      });
+    return fetch(`proxy.php?rodada=${buscaRodadaInput.value}`)
+      .then((response) => response.json())
+      .then((jogos) => {
+        const jogosFiltrados = jogos.filter(
+          (jogo) =>
+            jogo.equipes.mandante.nome_popular
+              .toLowerCase()
+              .includes(buscaInput.value.toLowerCase()) ||
+            jogo.equipes.visitante.nome_popular
+              .toLowerCase()
+              .includes(buscaInput.value.toLowerCase())
+        );
+        exibirJogos(jogosFiltrados);
+        return jogosFiltrados;
+      })
+      .catch((erro) => console.error("Erro ao buscar jogos:", erro));
   }
 
-  filtrarJogos();
-  setInterval(filtrarJogos, 10000);
+  function salvarJogos(jogos) {
+    fetch('/salvar_jogos.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(jogos)
+    })
+    .then(response => response.text())
+    .then(data => {
+      console.log(data);
+    })
+    .catch(error => {
+      console.error('Erro ao salvar jogos:', error);
+    });
+  }
+
+  // Atualiza e salva jogos a cada 1 minuto
+  setInterval(() => {
+    atualizarJogos();
+    filtrarJogos().then(jogosFiltrados => {
+      salvarJogos(jogosFiltrados);
+    });
+  }, 1 * 60 * 1000);
+
+  function exibirJogos(jogos) {
+    jogosTabela.innerHTML = '';
+    jogos.forEach((jogo) => {
+      const linha = document.createElement('tr');
+      linha.innerHTML = `
+        <td>${jogo.data_realizacao}</td>
+        <td>${jogo.hora_realizacao}</td>
+        <td>${jogo.equipes.mandante.nome_popular}</td>
+        <td>${jogo.placar_oficial_mandante} X ${jogo.placar_oficial_visitante}</td>
+        <td>${jogo.equipes.visitante.nome_popular}</td>
+      `;
+      jogosTabela.appendChild(linha);
+    });
+  }
+
+  atualizarJogos();
 </script>
-<script src="../Controller/buscarData.mjs"></script>
 </body>
 </html>
-

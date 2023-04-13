@@ -1,36 +1,45 @@
 <?php
-require_once 'conexao-reserva.php'; // Substitua pelo nome do arquivo que contém a conexão com o banco de dados
+require_once 'conexao-reserva.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
 if (!empty($data)) {
-    foreach ($data as $jogo) {
-        // Substitua os nomes das colunas pelos nomes corretos de suas colunas no banco de dados
-        $sql = "INSERT INTO jogos (data_jogo, hora_jogo, mandante_id, mandante_sigla, mandante_nome, mandante_escudo, visitante_id, visitante_sigla, visitante_nome, visitante_escudo, placar_mandante, placar_visitante)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
+    $sql = "INSERT INTO jogos (data_jogo, hora_jogo, mandante_id, mandante_sigla, mandante_nome, visitante_id, visitante_sigla, visitante_nome, placar_mandante, placar_visitante)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            data_jogo = VALUES(data_jogo),
+            hora_jogo = VALUES(hora_jogo),
+            mandante_sigla = VALUES(mandante_sigla),
+            mandante_nome = VALUES(mandante_nome),
+            visitante_sigla = VALUES(visitante_sigla),
+            visitante_nome = VALUES(visitante_nome),
+            placar_mandante = VALUES(placar_mandante),
+            placar_visitante = VALUES(placar_visitante)";
+    
+    try {
         $stmt = $conn->prepare($sql);
-        
-        $stmt->bind_param(
-            'ssisisssisii',
-            $jogo['data'],
-            $jogo['hora'],
-            $jogo['mandante']['id'],
-            $jogo['mandante']['sigla'],
-            $jogo['mandante']['nome'],
-            $jogo['mandante']['escudo'],
-            $jogo['visitante']['id'],
-            $jogo['visitante']['sigla'],
-            $jogo['visitante']['nome'],
-            $jogo['visitante']['escudo'],
-            $jogo['placar_mandante'],
-            $jogo['placar_visitante']
-        );
-        
-        $stmt->execute();
+
+        foreach ($data as $jogo) {
+            $stmt->bind_param("ssisssissi",
+    $jogo['data_realizacao'],
+    $jogo['hora_realizacao'],
+    $jogo['equipes']['mandante']['id'],
+    $jogo['equipes']['mandante']['sigla'],
+    $jogo['equipes']['mandante']['nome_popular'],
+    $jogo['equipes']['visitante']['id'],
+    $jogo['equipes']['visitante']['sigla'],
+    $jogo['equipes']['visitante']['nome_popular'],
+    $jogo['placar_oficial_mandante'],
+    $jogo['placar_oficial_visitante']
+);
+
+            $stmt->execute();
+        }
+        echo "Jogos atualizados com sucesso!";
+    } catch (mysqli_sql_exception $e) {
+        echo "Erro ao atualizar jogos: " . $e->getMessage();
     }
-    echo "Jogos salvos com sucesso!";
 } else {
-    echo "Nenhum jogo encontrado para salvar.";
+    echo "Nenhum jogo encontrado para atualizar.";
 }
 ?>
